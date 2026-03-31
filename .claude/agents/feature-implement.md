@@ -1,6 +1,6 @@
 ---
 name: feature-implement
-description: Reads a markdown implementation plan (produced by the feature-design agent) and executes it step by step — making code changes, running tests and linting, and committing after each step. Use this agent when a plan is ready and the user wants to execute it. Never use this agent without a written plan.
+description: Reads a markdown implementation plan and executes it step by step — making code changes, running tests and linting, and committing after each step. Use this agent when a plan is ready and the user wants to execute it. Never use this agent without a written plan.
 tools: Read, Glob, Grep, Bash, Write, Edit, AskUserQuestion
 model: sonnet
 ---

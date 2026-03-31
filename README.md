@@ -1,32 +1,50 @@
 # claude-agents
 
-A set of four Claude Code subagent definitions for a software development workflow: design a feature, implement it, test it, and document it.
+A set of Claude Code agents for a complete software development workflow — design, implement, test, and document — runnable as a single pipeline or as individual agents.
 
-## Suggested workflow
+## Quick start
+
+Run the full workflow with a single command:
 
 ```
-feature-design  →  feature-implement  →  test-writer  →  doc-writer
+claude --agent feature-workflow
 ```
 
-1. **`feature-design`** explores the codebase and writes a structured implementation plan to `docs/plans/<feature-name>-plan.md`
-2. **`feature-implement`** reads that plan and executes it step by step, committing after each step
-3. **`test-writer`** writes tests for the implemented code
-4. **`doc-writer`** writes or updates documentation
+Describe the feature you want to build. The orchestrator handles the rest — delegating to specialized agents for each phase, confirming with you between steps, and producing a final summary when done.
 
-`feature-implement` requires a plan file as input and will not proceed without one.
+## How it works
 
-## Agents
+The `feature-workflow` agent runs four phases in sequence, delegating each to a specialized agent:
 
-| Name | Model | Description |
-|---|---|---|
-| `feature-design` | opus | Guides through designing a feature — explores the codebase, proposes a structured implementation plan, writes it to `docs/plans/<feature-name>-plan.md`, and iterates until ready to execute |
-| `feature-implement` | sonnet | Reads a markdown plan produced by `feature-design` and executes it step by step — making code changes, running tests and linting, and committing after each step |
-| `test-writer` | opus | Writes tests covering happy path and edge cases, reasoning from intended behavior rather than current output |
-| `doc-writer` | sonnet | Writes documentation grounded exclusively in code that has been read or online sources that are explicitly cited |
+```
+Design  →  Implement  →  Test  →  Document
+```
 
-## Invocation
+1. **Design** — explores the codebase, proposes a structured implementation plan, iterates until you approve, and writes the plan to `docs/plans/<feature-name>-plan.md`
+2. **Implement** — reads the plan and executes it step by step, running tests and linting between steps, committing after each one
+3. **Test** — writes tests for the implemented code covering happy path, edge cases, and error cases
+4. **Document** — writes or updates documentation grounded in the code that was just written
 
-Use an @-mention to guarantee a specific agent runs for a task:
+Between each phase, the orchestrator:
+- Summarizes what the previous agent accomplished
+- Asks you to confirm before proceeding to the next phase
+- Passes relevant context forward (plan file path, changed files, feature scope)
+
+### Skipping phases
+
+You can skip any phase. The orchestrator will confirm each skipped phase individually and explain the consequence before proceeding. For example:
+
+> "You're choosing to skip the Test phase. This means no automated test coverage will be written for this feature. Are you sure?"
+
+You can also start mid-pipeline by providing an existing plan file — the orchestrator will skip the Design phase and begin with Implementation.
+
+### Failure handling
+
+If any agent reports a problem (test failures, lint errors, unresolved ambiguities), the orchestrator stops and offers three options: retry the phase, skip it, or stop the workflow.
+
+## Using individual agents
+
+Each agent can also be used standalone via @-mention for targeted tasks:
 
 ```
 @"feature-design (agent)" add a rate-limiting middleware
@@ -43,12 +61,21 @@ Use the feature-design agent to plan adding OAuth support
 
 See the [Claude Code subagents documentation](https://code.claude.com/docs/en/sub-agents) for full invocation options including the `--agent` CLI flag.
 
-## Tool access
+## Agents
 
-Each agent has access to a specific set of tools, as declared in the `tools` field of its frontmatter.
+| Name | Model | Description |
+|---|---|---|
+| `feature-workflow` | opus | Orchestrates the full feature lifecycle — design, implement, test, and document — by delegating to specialized agents in sequence |
+| `feature-design` | opus | Guides through designing a feature — explores the codebase, proposes a structured implementation plan, writes it to `docs/plans/<feature-name>-plan.md`, and iterates until ready to execute |
+| `feature-implement` | sonnet | Reads a markdown implementation plan and executes it step by step — making code changes, running tests and linting, and committing after each step |
+| `test-writer` | opus | Writes tests covering happy path and edge cases, reasoning from intended behavior rather than current output |
+| `doc-writer` | sonnet | Writes documentation grounded exclusively in code that has been read or online sources that are explicitly cited |
+
+## Tool access
 
 | Agent | Tools |
 |---|---|
+| `feature-workflow` | Agent(feature-design, feature-implement, test-writer, doc-writer), Read, Bash, AskUserQuestion |
 | `feature-design` | Read, Glob, Grep, Bash, Write, Edit, AskUserQuestion, WebFetch, WebSearch |
 | `feature-implement` | Read, Glob, Grep, Bash, Write, Edit, AskUserQuestion |
 | `test-writer` | Read, Glob, Grep, Bash, Write, Edit, AskUserQuestion |
@@ -61,6 +88,7 @@ Each agent has access to a specific set of tools, as declared in the `tools` fie
 ├── doc-writer.md
 ├── feature-design.md
 ├── feature-implement.md
+├── feature-workflow.md
 └── test-writer.md
 ```
 
